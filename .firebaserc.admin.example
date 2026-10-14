@@ -1,0 +1,8 @@
+{
+  "projects": { "default": "lucky-wings-1535f" },
+  "targets": {
+    "lucky-wings-1535f": {
+      "hosting": { "admin": ["REPLACE-WITH-ADMIN-SITE-ID"] }
+    }
+  }
+}

@@ -19,6 +19,8 @@ const { makeAdminHandlers } = require("./admin");
 
 const db        = admin.firestore();
 const messaging = admin.messaging();
+// firebase-admin 13 no longer hangs FieldValue off the legacy admin.firestore namespace.
+const FieldValue = admin.firestore.FieldValue || require("firebase-admin/firestore").FieldValue;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -80,7 +82,7 @@ exports.verifyQualification = functions.https.onCall(async (data, context) => {
   }
 
   // 6. Mark session as used
-  await sessionRef.set({ userId, sessionId, usedAt: admin.firestore.FieldValue.serverTimestamp() });
+  await sessionRef.set({ userId, sessionId, usedAt: FieldValue.serverTimestamp() });
 
   // 8. Load or create monthly record
   const recordId  = `${userId}_${monthKey}`;
@@ -121,7 +123,7 @@ exports.verifyQualification = functions.https.onCall(async (data, context) => {
   record.totalSessions    = (record.totalSessions    || 0) + 1;
   record.totalPlaySeconds = (record.totalPlaySeconds || 0) + activeSeconds;
   record.totalEntries     = record.qualifiedDays.length + record.catchupDays.length;
-  record.updatedAt        = admin.firestore.FieldValue.serverTimestamp();
+  record.updatedAt        = FieldValue.serverTimestamp();
 
   await recordRef.set(record, { merge: true });
 
@@ -163,7 +165,7 @@ exports.deleteAccount = functions.https.onCall(async (data, context) => {
   }
   const uid = context.auth.uid;
   const result = await deleteAccountData(
-    { db, auth: admin.auth(), FieldValue: admin.firestore.FieldValue }, uid);
+    { db, auth: admin.auth(), FieldValue }, uid);
   functions.logger.info("Account deleted", { uid, ...result });
   return { deleted: true };
 });
@@ -217,7 +219,7 @@ exports.monthlyRaffleDraw = functions.pubsub
       monthKey,
       prizeName,
       totalEntries: winnerRecord.totalEntries,
-      wonAt     : admin.firestore.FieldValue.serverTimestamp(),
+      wonAt     : FieldValue.serverTimestamp(),
       claimed   : false,
       claimDeadline: new Date(Date.now() + CLAIM_WINDOW_DAYS * 86400000),
     });
@@ -257,7 +259,7 @@ exports.expireUnclaimedWins = functions.pubsub
 
     for (const doc of expired.docs) {
       // Mark as expired
-      await doc.ref.update({ expired: true, expiredAt: admin.firestore.FieldValue.serverTimestamp() });
+      await doc.ref.update({ expired: true, expiredAt: FieldValue.serverTimestamp() });
       functions.logger.info(`Expired unclaimed win: ${doc.id}`);
       // Note: Re-draw logic can be triggered here by calling monthlyRaffleDraw
       // with the same monthKey but excluding the expired winner.
@@ -314,7 +316,9 @@ exports.sendDrawDayReminder = functions.pubsub
 // HttpsError codes.
 
 const adminHandlers = makeAdminHandlers({
-  db, auth: admin.auth(), messaging, FieldValue: admin.firestore.FieldValue,
+  db, auth: admin.auth(), messaging, FieldValue,
+  // MFA is required in production; set ADMIN_REQUIRE_MFA=false in functions/.env.local for the emulator.
+  requireMfa: process.env.ADMIN_REQUIRE_MFA !== "false",
 });
 for (const [name, handler] of Object.entries(adminHandlers)) {
   exports[name] = functions.https.onCall(async (data, context) => {

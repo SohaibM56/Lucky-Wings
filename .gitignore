@@ -65,3 +65,5 @@ firebase-debug.log
 # Firebase admin service-account keys (never commit)
 *service-account*.json
 *-adminsdk-*.json
+
+functions/.env.local

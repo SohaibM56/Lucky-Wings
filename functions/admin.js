@@ -15,9 +15,13 @@ class AdminError extends Error {
 }
 const fail = (code, msg) => { throw new AdminError(code, msg); };
 
-function requireAdmin(context) {
+function requireAdminBase(context, { requireMfa = false } = {}) {
   if (!context || !context.auth || !context.auth.token || context.auth.token.admin !== true) {
     fail("permission-denied", "Admin access required.");
+  }
+  // sign_in_second_factor is present only when the session passed an MFA challenge.
+  if (requireMfa && !(context.auth.token.firebase && context.auth.token.firebase.sign_in_second_factor)) {
+    fail("permission-denied", "Two-step verification required.");
   }
   return { uid: context.auth.uid, email: context.auth.token.email || null };
 }
@@ -58,7 +62,8 @@ function pickWinner(records, rand = Math.random) {
   return { poolSize: pool.length, winner: pool[Math.floor(rand() * pool.length)] };
 }
 
-function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Date(), rand = Math.random }) {
+function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Date(), rand = Math.random, requireMfa = false }) {
+  const requireAdmin = (context) => requireAdminBase(context, { requireMfa });
   async function audit(actor, action, target, before, after, extra) {
     await db.collection("admin_audit").add({
       actorUid: actor.uid, actorEmail: actor.email, action, target,
@@ -405,4 +410,4 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
   };
 }
 
-module.exports = { makeAdminHandlers, requireAdmin, AdminError, pickWinner, prevMonthKey, monthKeyOf };
+module.exports = { makeAdminHandlers, requireAdmin: requireAdminBase, AdminError, pickWinner, prevMonthKey, monthKeyOf };
