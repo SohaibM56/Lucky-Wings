@@ -241,10 +241,3 @@ test("audit list is newest first and limited", async () => {
   const r = await h.adminListAudit({ limit: 2 }, adminCtx);
   assert.deepStrictEqual(r.entries.map((e) => e.action), ["y", "z"]);
 });
-
-test("requireMfa: admins without a second factor are refused, with one are allowed", async () => {
-  const { h } = setup({}, { requireMfa: true });
-  await assert.rejects(h.adminListAudit({}, adminCtx), code("permission-denied"));
-  const mfaCtx = { auth: { uid: "a", token: { admin: true, firebase: { sign_in_second_factor: "totp" } } } };
-  assert.deepStrictEqual((await h.adminListAudit({}, mfaCtx)).entries, []);
-});

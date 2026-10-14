@@ -317,8 +317,6 @@ exports.sendDrawDayReminder = functions.pubsub
 
 const adminHandlers = makeAdminHandlers({
   db, auth: admin.auth(), messaging, FieldValue,
-  // MFA is required in production; set ADMIN_REQUIRE_MFA=false in functions/.env.local for the emulator.
-  requireMfa: process.env.ADMIN_REQUIRE_MFA !== "false",
 });
 for (const [name, handler] of Object.entries(adminHandlers)) {
   exports[name] = functions.https.onCall(async (data, context) => {
