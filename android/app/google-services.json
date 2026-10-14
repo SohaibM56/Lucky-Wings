@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "1009559416788",
+    "project_id": "lucky-wings-1535f",
+    "storage_bucket": "lucky-wings-1535f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009559416788:android:58cf9caa775b42c1a5b041",
+        "android_client_info": {
+          "package_name": "com.robinson.luckywings"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1009559416788-iip878h2qsuablf6u60c9jvtrvi53ndo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.robinson.luckywings",
+            "certificate_hash": "137f2da8928902ebbe12105d40000cdb29c1dc0f"
+          }
+        },
+        {
+          "client_id": "1009559416788-lqufnfcga4oj1m9a0gdvuvdlo6atmijf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.robinson.luckywings",
+            "certificate_hash": "680c0c4afabf404c4e03cc8eb32b3898675c5b9b"
+          }
+        },
+        {
+          "client_id": "1009559416788-jairsro54hu00je0d1h5iubvehk1hrb5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZtNkIkt506H_do9I9K7FDNEq-UEGJic8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1009559416788-jairsro54hu00je0d1h5iubvehk1hrb5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1009559416788-t2li8o7vi66bilvvljifl7gsnabu9pc7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tdev.flipflop"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

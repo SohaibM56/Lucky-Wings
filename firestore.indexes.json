@@ -1,0 +1,29 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "monthly_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "monthKey", "order": "ASCENDING" },
+        { "fieldPath": "bestScore", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "monthly_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "monthKey", "order": "ASCENDING" },
+        { "fieldPath": "totalEntries", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "raffle_winners",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "claimed", "order": "ASCENDING" },
+        { "fieldPath": "claimDeadline", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

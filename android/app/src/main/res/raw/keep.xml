@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The game builds sound resource names at runtime ("android.resource://<pkg>/raw/<name>"
+  in MainActivity.playAudio), which the resource shrinker cannot see, so it
+  would strip these files as "unused" in release builds. Keep them all.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/*" />
