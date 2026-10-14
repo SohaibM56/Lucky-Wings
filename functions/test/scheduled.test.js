@@ -42,6 +42,7 @@ const fakeDb = {
 };
 const fakeAdmin = {
   initializeApp() {},
+  auth: () => ({}),
   firestore: Object.assign(() => fakeDb, { FieldValue: { serverTimestamp: () => "TS" } }),
   messaging: () => ({
     send: async (m) => { sent.push(m); },

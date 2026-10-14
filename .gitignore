@@ -61,3 +61,7 @@ firebase-debug.log
 *.apk
 *.aab
 .DS_Store
+
+# Firebase admin service-account keys (never commit)
+*service-account*.json
+*-adminsdk-*.json

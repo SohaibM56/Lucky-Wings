@@ -15,6 +15,7 @@ admin.initializeApp();
 
 const { applyBlocks } = require("./qualifier");
 const { assertRecentSignIn, deleteAccountData } = require("./account");
+const { makeAdminHandlers } = require("./admin");
 
 const db        = admin.firestore();
 const messaging = admin.messaging();
@@ -306,3 +307,24 @@ exports.sendDrawDayReminder = functions.pubsub
     functions.logger.info(`Draw day reminders sent to ${tokens.length} users`);
     return null;
   });
+
+// ─── Admin panel callables (see admin.js / ADMIN_PANEL_PLAN.md) ──────────────
+//
+// Each requires the custom claim admin:true. AdminError codes map 1:1 onto
+// HttpsError codes.
+
+const adminHandlers = makeAdminHandlers({
+  db, auth: admin.auth(), messaging, FieldValue: admin.firestore.FieldValue,
+});
+for (const [name, handler] of Object.entries(adminHandlers)) {
+  exports[name] = functions.https.onCall(async (data, context) => {
+    try {
+      return await handler(data, context);
+    } catch (e) {
+      if (e && e.code && e.name !== "FirebaseError" && !(e instanceof functions.https.HttpsError)) {
+        throw new functions.https.HttpsError(e.code, e.message);
+      }
+      throw e;
+    }
+  });
+}
