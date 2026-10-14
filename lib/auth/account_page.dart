@@ -56,12 +56,20 @@ class AccountPage extends StatelessWidget {
                                 _LinkAccountButton()
                               else
                                 _LogoutButton(),
-                              const SizedBox(height: 28),
-                              _DeleteAccountButton(isGuest: state.isGuest),
                             ],
                           ),
                         );
                       },
+                    ),
+                  ),
+                  // Pinned to the bottom of the screen, outside the scroll view.
+                  BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) => Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: _DeleteAccountButton(isGuest: state.isGuest),
+                      ),
                     ),
                   ),
                 ],
@@ -605,6 +613,11 @@ class _DeleteAccountButton extends StatelessWidget {
       if (password == null || !context.mounted) return;
     }
 
+    // Captured up front: once the account is gone the auth state change can
+    // tear this page down, so its context can't be relied on afterwards.
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final messenger = ScaffoldMessenger.of(context);
+
     // Blocking progress dialog while the server deletes everything.
     showDialog(
       context: context,
@@ -615,20 +628,21 @@ class _DeleteAccountButton extends StatelessWidget {
       ),
     );
     final error = await cubit.deleteAccount(password: password);
-    if (!context.mounted) return;
-    Navigator.of(context, rootNavigator: true).pop(); // progress dialog
+    navigator.pop(); // progress dialog
 
     if (error != null) {
-      ScaffoldMessenger.of(context)
+      messenger
         ..removeCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(error)));
       return;
     }
-    Navigator.of(context)
-        .pushNamedAndRemoveUntil(AuthPage.routeName, (route) => false);
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-        const SnackBar(content: Text('Your account has been deleted')));
+    navigator.pushNamedAndRemoveUntil(AuthPage.routeName, (route) => false);
+    messenger
+      ..removeCurrentSnackBar()
+      ..showSnackBar(const SnackBar(
+        content: Text('Your account has been deleted'),
+        duration: Duration(seconds: 5),
+      ));
   }
 
   Future<String?> _askPassword(BuildContext context) {

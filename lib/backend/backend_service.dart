@@ -335,10 +335,26 @@ class BackendService {
         .set({'fcmToken': token}, SetOptions(merge: true));
   }
 
+  /// Runs a Firestore call, retrying up to 3 times (short pause between) while
+  /// the client is offline. If it is still offline after that, throws an
+  /// [AuthException] so the UI shows a plain message, not the raw error.
+  Future<T> _firestoreRetry<T>(Future<T> Function() action) async {
+    const attempts = 3;
+    for (var i = 1;; i++) {
+      try {
+        return await action();
+      } on FirebaseException catch (e) {
+        if (e.code != 'unavailable' && e.code != 'deadline-exceeded') rethrow;
+        if (i >= attempts) throw const AuthException('No internet connection');
+        await Future.delayed(Duration(seconds: i));
+      }
+    }
+  }
+
   Future<FireBaseUser> _userDoc(fb_auth.User firebaseUser,
       {String? fallbackUsername}) async {
     final docRef = _firestore.collection('users').doc(firebaseUser.uid);
-    final doc = await docRef.get();
+    final doc = await _firestoreRetry(() => docRef.get());
 
     if (doc.exists) {
       final data = doc.data()!;
@@ -362,7 +378,7 @@ class BackendService {
       isAnonymous: firebaseUser.isAnonymous,
       emailVerified: firebaseUser.emailVerified,
     );
-    await docRef.set(user.toMap());
+    await _firestoreRetry(() => docRef.set(user.toMap()));
     return user;
   }
 
