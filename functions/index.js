@@ -9,7 +9,7 @@
  *   sendDrawDayReminder  - scheduled: sends FCM push on draw day at 10:00 UTC
  */
 
-const functions = require("firebase-functions");
+const functions = require("firebase-functions/v1");
 const admin     = require("firebase-admin");
 admin.initializeApp();
 
