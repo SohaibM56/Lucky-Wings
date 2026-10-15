@@ -161,8 +161,7 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
     requireAdmin(context);
     const snap = await db.collection("raffle_config").get();
     const prizes = snap.docs.map((d) => ({
-      month: d.id, prize: d.data().prize || "", description: d.data().description || "",
-      imageUrl: d.data().imageUrl || "",
+      month: d.id, prize: d.data().prize || "",
     })).sort((a, b) => (a.month < b.month ? 1 : -1));
     const nm = nextMonthKey(now());
     return { prizes, nextMonth: nm, nextMonthMissing: !prizes.some((p) => p.month === nm) };
@@ -173,12 +172,9 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
     const m = month(data && data.month);
     if (m < monthKeyOf(now())) fail("failed-precondition", "Cannot edit a past month.");
     const prize = str(data.prize, "prize", { max: 120 });
-    const description = str(data.description, "description", { max: 1000, required: false });
-    const imageUrl = str(data.imageUrl, "imageUrl", { max: 500, required: false });
-    if (imageUrl && !/^https:\/\//.test(imageUrl)) fail("invalid-argument", "imageUrl must be https.");
     const ref = db.collection("raffle_config").doc(m);
     const prev = await ref.get();
-    const after = { prize, description, imageUrl };
+    const after = { prize };
     await ref.set(after, { merge: true });
     await audit(actor, "setPrize", `raffle_config/${m}`, prev.exists ? prev.data() : null, after);
     return { month: m, ...after };

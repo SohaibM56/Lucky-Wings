@@ -66,7 +66,7 @@ test("setPrize: creates, audits, blocks past months and bad input", async () => 
   await assert.rejects(h.adminSetPrize({ month: "2026-09", prize: "x" }, adminCtx), code("failed-precondition"));
   await assert.rejects(h.adminSetPrize({ month: "nope", prize: "x" }, adminCtx), code("invalid-argument"));
   await assert.rejects(h.adminSetPrize({ month: "2026-11", prize: "" }, adminCtx), code("invalid-argument"));
-  await assert.rejects(h.adminSetPrize({ month: "2026-11", prize: "x", imageUrl: "http://a" }, adminCtx), code("invalid-argument"));
+  await assert.rejects(h.adminSetPrize({ month: "2026-11", prize: "x".repeat(121) }, adminCtx), code("invalid-argument"));
 });
 
 test("listPrizes flags a missing next month", async () => {
