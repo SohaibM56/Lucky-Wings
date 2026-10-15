@@ -358,7 +358,7 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
       }
     }
     out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    return { users: out.slice(0, q ? 25 : 100), total: out.length };
+    return { users: out.slice(0, 500), total: out.length };
   }
 
   async function adminGetUser(data, context) {
