@@ -78,6 +78,10 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
     userDeleted: !!w.userDeleted,
   });
   const isActiveWin = (w) => !w.disqualified && !w.expired;
+  const winnerStatus = (w) =>
+    w.disqualified ? "disqualified" : w.expired ? "expired"
+      : w.deliveryStatus === "delivered" ? "delivered" : w.deliveryStatus === "shipped" ? "shipped"
+        : w.deliveryStatus === "contacted" ? "contacted" : w.claimed ? "claimed" : "pending";
 
   // uid -> sign-up time (ms) from Firebase Auth; the app never stores createdAt on profiles.
   async function authCreatedMap() {
@@ -130,6 +134,33 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
       if (r.dailyActiveSeconds && r.dailyActiveSeconds[dayKey] > 0) activeToday++;
     });
 
+    // Last 30 days: players active per day, and entries earned (qualified days) per day.
+    const prevMk = prevMonthKey(n);
+    const prevRecs = await db.collection("monthly_records").where("monthKey", "==", prevMk).get();
+    const activeByDay = {}, entriesByDay = {};
+    [...recs.docs, ...prevRecs.docs].forEach((d) => {
+      const r = d.data();
+      Object.entries(r.dailyActiveSeconds || {}).forEach(([day, secs]) => {
+        if (secs > 0) activeByDay[day] = (activeByDay[day] || 0) + 1;
+      });
+      (r.qualifiedDays || []).forEach((day) => { entriesByDay[day] = (entriesByDay[day] || 0) + 1; });
+    });
+    const daily = [];
+    for (let i = 29; i >= 0; i--) {
+      const day = new Date(n.getTime() - i * 86400000).toISOString().split("T")[0];
+      daily.push({ day, active: activeByDay[day] || 0, entries: entriesByDay[day] || 0 });
+    }
+
+    // Status of the draw for the month that just closed.
+    const closedWins = (await db.collection("raffle_winners").where("monthKey", "==", prevMk).get())
+      .docs.map((d) => d.data());
+    const live = closedWins.find((w) => !w.disqualified) || closedWins[0] || null;
+    const lastDraw = {
+      month: prevMk,
+      entrants: prevRecs.docs.filter((d) => (d.data().totalEntries || 0) > 0).length,
+      winner: live ? { prizeName: live.prizeName, status: winnerStatus(live) } : null,
+    };
+
     const prizeDoc = await db.collection("raffle_config").doc(mk).get();
     const nextPrize = await db.collection("raffle_config").doc(nextMonthKey(n)).get();
     const nextDraw = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 1, 0, 5));
@@ -152,7 +183,7 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
       activeToday, entriesThisMonth: entries,
       currentPrize: prizeDoc.exists ? prizeDoc.data().prize : null,
       daysToDraw: Math.ceil((nextDraw.getTime() - n.getTime()) / 86400000),
-      unclaimedWins: unclaimed, expiringWins: expiring, warnings,
+      unclaimedWins: unclaimed, expiringWins: expiring, warnings, daily, lastDraw,
     };
   }
 

@@ -53,6 +53,28 @@ test("dashboard: counts, prize and missing-next-month warning", async () => {
   assert.strictEqual(d.unclaimedWins, 1);
   assert.strictEqual(d.expiringWins, 1);
   assert.match(d.warnings[0], /2026-11/);
+  assert.strictEqual(d.daily.length, 30);
+  assert.deepStrictEqual(d.daily[29], { day: "2026-10-14", active: 1, entries: 0 });
+  assert.strictEqual(d.lastDraw.month, "2026-09");
+  assert.strictEqual(d.lastDraw.winner, null);
+});
+
+test("dashboard: daily series and the closed month's draw status", async () => {
+  const { h } = setup({
+    monthly_records: {
+      a_2026_10: { monthKey: "2026-10", totalEntries: 2, qualifiedDays: ["2026-10-13", "2026-10-14"], dailyActiveSeconds: { "2026-10-13": 400, "2026-10-14": 300 } },
+      b_2026_10: { monthKey: "2026-10", totalEntries: 1, qualifiedDays: ["2026-10-14"], dailyActiveSeconds: { "2026-10-14": 100 } },
+      a_2026_09: { monthKey: "2026-09", totalEntries: 3, qualifiedDays: ["2026-09-30"], dailyActiveSeconds: { "2026-09-30": 50 } },
+    },
+    raffle_winners: { w1: { monthKey: "2026-09", prizeName: "Phone", claimed: true, deliveryStatus: "shipped" } },
+  });
+  const d = await h.adminGetDashboard({}, adminCtx);
+  assert.deepStrictEqual(d.daily.slice(-2), [
+    { day: "2026-10-13", active: 1, entries: 1 },
+    { day: "2026-10-14", active: 2, entries: 2 },
+  ]);
+  assert.deepStrictEqual(d.daily.find((x) => x.day === "2026-09-30"), { day: "2026-09-30", active: 1, entries: 1 });
+  assert.deepStrictEqual(d.lastDraw, { month: "2026-09", entrants: 1, winner: { prizeName: "Phone", status: "shipped" } });
 });
 
 test("setPrize: creates, audits, blocks past months and bad input", async () => {
