@@ -41,6 +41,11 @@ a { color: var(--navy-700); }
 .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.12; margin: 0 0 16px; }
 .lead { font-size: 1.1rem; color: #d7d9ec; max-width: 34em; margin: 0 0 18px; }
 .note { color: #aeb2cf; font-size: .95rem; margin: 0; }
+.cta { margin: 0 0 14px; }
+.btn.play { padding: 13px 26px; font-size: 1.02rem; }
+.card.wide { background: #fff; padding: 24px; }
+.muted { color: var(--muted); font-size: .92rem; }
+footer a { color: var(--gold-400); }
 .hero-art { text-align: center; }
 .hero-art img { width: min(320px, 70vw); border-radius: 50%; box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 0 4px rgba(245,184,0,.35); }
 
