@@ -79,6 +79,22 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
   });
   const isActiveWin = (w) => !w.disqualified && !w.expired;
 
+  // uid -> sign-up time (ms) from Firebase Auth; the app never stores createdAt on profiles.
+  async function authCreatedMap() {
+    const map = new Map();
+    if (typeof auth.listUsers !== "function") return map;
+    let pageToken;
+    do {
+      const r = await auth.listUsers(1000, pageToken);
+      r.users.forEach((u) => {
+        const t = Date.parse(u.metadata && u.metadata.creationTime);
+        if (!Number.isNaN(t)) map.set(u.uid, t);
+      });
+      pageToken = r.pageToken;
+    } while (pageToken);
+    return map;
+  }
+
   async function eligibleRecords(monthKey) {
     const snap = await db.collection("monthly_records")
       .where("monthKey", "==", monthKey).where("totalEntries", ">", 0).get();
@@ -100,7 +116,11 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
 
     const users = await db.collection("users").get();
     let newThisWeek = 0;
-    users.docs.forEach((d) => { const c = toMillis(d.data().createdAt); if (c && c >= weekAgo) newThisWeek++; });
+    const created = await authCreatedMap();
+    users.docs.forEach((d) => {
+      const c = created.get(d.id) || toMillis(d.data().createdAt);
+      if (c && c >= weekAgo) newThisWeek++;
+    });
 
     const recs = await db.collection("monthly_records").where("monthKey", "==", mk).get();
     let entries = 0, activeToday = 0;
@@ -323,19 +343,22 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
   }
 
   // ── players ────────────────────────────────────────────────────────────────
+  // Empty query lists the newest players; otherwise matches email / username / uid.
   async function adminSearchUsers(data, context) {
     requireAdmin(context);
-    const q = str(data && data.query, "query", { max: 100 }).toLowerCase();
+    const q = str(data && data.query, "query", { max: 100, required: false }).toLowerCase();
     const snap = await db.collection("users").get();
+    const created = await authCreatedMap();
     const out = [];
     for (const d of snap.docs) {
       const u = d.data();
-      if (d.id === q || (u.email || "").toLowerCase().includes(q) || (u.username || "").toLowerCase().includes(q)) {
-        out.push({ uid: d.id, username: u.username || "", email: u.email || "", createdAt: toMillis(u.createdAt) });
-        if (out.length >= 25) break;
+      if (!q || d.id === q || (u.email || "").toLowerCase().includes(q) || (u.username || "").toLowerCase().includes(q)) {
+        out.push({ uid: d.id, username: u.username || "", email: u.email || "",
+          createdAt: created.get(d.id) || toMillis(u.createdAt) });
       }
     }
-    return { users: out };
+    out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    return { users: out.slice(0, q ? 25 : 100), total: out.length };
   }
 
   async function adminGetUser(data, context) {
@@ -345,7 +368,12 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
     if (!u.exists) fail("not-found", "User not found.");
     const p = u.data();
     let disabled = false;
-    try { disabled = !!(await auth.getUser(uid)).disabled; } catch (e) { /* auth user may be gone */ }
+    let createdAt = null;
+    try {
+      const au = await auth.getUser(uid);
+      disabled = !!au.disabled;
+      createdAt = Date.parse(au.metadata && au.metadata.creationTime) || null;
+    } catch (e) { /* auth user may be gone */ }
     const recs = await db.collection("monthly_records").where("userId", "==", uid).get();
     const records = recs.docs.map((d) => d.data()).map((r) => ({
       monthKey: r.monthKey, totalEntries: r.totalEntries || 0, bestScore: r.bestScore || 0,
@@ -355,7 +383,7 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
     const wins = await db.collection("raffle_winners").where("userId", "==", uid).get();
     return {
       uid, username: p.username || "", email: p.email || "", avatarId: p.avatarId || "",
-      totalWins: p.totalWins || 0, createdAt: toMillis(p.createdAt), disabled,
+      totalWins: p.totalWins || 0, createdAt: createdAt || toMillis(p.createdAt), disabled,
       records, wins: wins.docs.map((d) => cleanWinner(d.id, d.data())),
     };
   }

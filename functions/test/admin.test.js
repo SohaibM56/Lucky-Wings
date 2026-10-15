@@ -14,6 +14,7 @@ function setup(seed = {}, over = {}) {
     deleteUser: async (u) => deleted.push(u),
     updateUser: async (u, p) => disabled.push([u, p]),
     getUser: async () => ({ disabled: false }),
+    listUsers: async () => ({ users: over.authUsers || [] }),
   };
   const messaging = { send: async (m) => pushes.push(m) };
   const h = makeAdminHandlers({ db, auth, messaging, FieldValue: { serverTimestamp: () => "TS" },
@@ -279,4 +280,18 @@ test("bootstrap: disabled when no allowed email is configured", async () => {
   const { db } = makeDb();
   const run = makeBootstrap({ db, auth: {}, FieldValue: {}, allowedEmail: undefined });
   assert.deepStrictEqual(await run({}, ctxFor("boss@x.com")), { granted: false });
+});
+
+test("searchUsers: empty query lists newest first, Auth sign-up time fills createdAt, newThisWeek uses it", async () => {
+  const authUsers = [
+    { uid: "a", metadata: { creationTime: "2026-10-13T00:00:00Z" } },
+    { uid: "b", metadata: { creationTime: "2026-01-01T00:00:00Z" } },
+  ];
+  const { h } = setup({ users: { a: { username: "ann", email: "a@x.com" }, b: { username: "bob" } } }, { authUsers });
+  const r = await h.adminSearchUsers({ query: "" }, adminCtx);
+  assert.deepStrictEqual(r.users.map((u) => u.uid), ["a", "b"]);
+  assert.strictEqual(r.users[0].createdAt, Date.parse("2026-10-13T00:00:00Z"));
+  assert.strictEqual(r.total, 2);
+  assert.strictEqual((await h.adminSearchUsers({}, adminCtx)).users.length, 2);
+  assert.strictEqual((await h.adminGetDashboard({}, adminCtx)).players.newThisWeek, 1);
 });
