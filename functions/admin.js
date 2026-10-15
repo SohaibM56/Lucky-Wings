@@ -405,4 +405,40 @@ function makeAdminHandlers({ db, auth, messaging, FieldValue, now = () => new Da
   };
 }
 
-module.exports = { makeAdminHandlers, requireAdmin, AdminError, pickWinner, prevMonthKey, monthKeyOf };
+/**
+ * One-time admin bootstrap. The signed-in caller gets the admin claim only if
+ * their email equals the single allowed address (ADMIN_BOOTSTRAP_EMAIL) and
+ * no bootstrap has happened before. The slot is claimed atomically with
+ * create(), so it can succeed at most once; it is released if granting fails.
+ */
+function makeBootstrap({ db, auth, FieldValue, allowedEmail }) {
+  return async function adminBootstrap(data, context) {
+    if (!context || !context.auth) fail("unauthenticated", "Sign in first.");
+    const token = context.auth.token || {};
+    const allowed = (allowedEmail || "").trim().toLowerCase();
+    if (!allowed || (token.email || "").toLowerCase() !== allowed) return { granted: false };
+    if (token.admin === true) return { granted: false, reason: "already_admin" };
+
+    const slot = db.collection("admin_config").doc("bootstrap");
+    try {
+      await slot.create({ uid: context.auth.uid, email: allowed, at: FieldValue.serverTimestamp() });
+    } catch (e) {
+      if (e && (e.code === 6 || e.code === "already-exists")) return { granted: false, reason: "already_bootstrapped" };
+      throw e;
+    }
+    try {
+      const user = await auth.getUser(context.auth.uid);
+      await auth.setCustomUserClaims(context.auth.uid, { ...(user.customClaims || {}), admin: true });
+    } catch (e) {
+      await slot.delete();
+      throw e;
+    }
+    await db.collection("admin_audit").add({
+      actorUid: context.auth.uid, actorEmail: allowed, action: "bootstrapAdmin",
+      target: `users/${context.auth.uid}`, before: null, after: { admin: true }, at: FieldValue.serverTimestamp(),
+    });
+    return { granted: true };
+  };
+}
+
+module.exports = { makeBootstrap, makeAdminHandlers, requireAdmin, AdminError, pickWinner, prevMonthKey, monthKeyOf };

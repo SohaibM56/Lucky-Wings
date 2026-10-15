@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { makeAdminHandlers, requireAdmin, pickWinner } = require("../admin");
+const { makeAdminHandlers, makeBootstrap, requireAdmin, pickWinner } = require("../admin");
 const { makeDb } = require("./fakedb");
 
 const NOW = new Date("2026-10-14T12:00:00Z");
@@ -240,4 +240,43 @@ test("audit list is newest first and limited", async () => {
   } });
   const r = await h.adminListAudit({ limit: 2 }, adminCtx);
   assert.deepStrictEqual(r.entries.map((e) => e.action), ["y", "z"]);
+});
+
+function bootstrapSetup(seed = {}, failClaims = false) {
+  const { db, store } = makeDb(seed);
+  const claims = [];
+  const auth = {
+    getUser: async () => ({ customClaims: { x: 1 } }),
+    setCustomUserClaims: async (u, c) => { if (failClaims) throw new Error("boom"); claims.push([u, c]); },
+  };
+  const run = makeBootstrap({ db, auth, FieldValue: { serverTimestamp: () => "TS" }, allowedEmail: "Boss@x.com" });
+  return { run, store, claims };
+}
+const ctxFor = (email, extra = {}) => ({ auth: { uid: "u9", token: { email, ...extra } } });
+
+test("bootstrap: only the allowed email gets the claim, and only once", async () => {
+  const { run, store, claims } = bootstrapSetup();
+  await assert.rejects(run({}, {}), code("unauthenticated"));
+  assert.deepStrictEqual(await run({}, ctxFor("other@x.com")), { granted: false });
+  assert.strictEqual(claims.length, 0);
+  assert.deepStrictEqual(await run({}, ctxFor("boss@X.com")), { granted: true });
+  assert.deepStrictEqual(claims, [["u9", { x: 1, admin: true }]]);
+  assert.strictEqual(Object.values(store.admin_audit)[0].action, "bootstrapAdmin");
+  const again = await run({}, { auth: { uid: "u10", token: { email: "boss@x.com" } } });
+  assert.strictEqual(again.reason, "already_bootstrapped");
+  assert.strictEqual(claims.length, 1);
+});
+
+test("bootstrap: existing admins are left alone; a failed grant frees the slot", async () => {
+  const a = bootstrapSetup();
+  assert.strictEqual((await a.run({}, ctxFor("boss@x.com", { admin: true }))).reason, "already_admin");
+  const b = bootstrapSetup({}, true);
+  await assert.rejects(b.run({}, ctxFor("boss@x.com")), /boom/);
+  assert.ok(!b.store.admin_config || !b.store.admin_config.bootstrap);
+});
+
+test("bootstrap: disabled when no allowed email is configured", async () => {
+  const { db } = makeDb();
+  const run = makeBootstrap({ db, auth: {}, FieldValue: {}, allowedEmail: undefined });
+  assert.deepStrictEqual(await run({}, ctxFor("boss@x.com")), { granted: false });
 });

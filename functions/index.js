@@ -15,7 +15,7 @@ admin.initializeApp();
 
 const { applyBlocks } = require("./qualifier");
 const { assertRecentSignIn, deleteAccountData } = require("./account");
-const { makeAdminHandlers } = require("./admin");
+const { makeAdminHandlers, makeBootstrap } = require("./admin");
 
 const db        = admin.firestore();
 const messaging = admin.messaging();
@@ -330,3 +330,18 @@ for (const [name, handler] of Object.entries(adminHandlers)) {
     }
   });
 }
+
+// One-time grant of the admin claim to ADMIN_BOOTSTRAP_EMAIL (functions/.env).
+const adminBootstrap = makeBootstrap({
+  db, auth: admin.auth(), FieldValue, allowedEmail: process.env.ADMIN_BOOTSTRAP_EMAIL,
+});
+exports.adminBootstrap = functions.https.onCall(async (data, context) => {
+  try {
+    return await adminBootstrap(data, context);
+  } catch (e) {
+    if (e && e.code && !(e instanceof functions.https.HttpsError) && typeof e.code === "string") {
+      throw new functions.https.HttpsError(e.code, e.message);
+    }
+    throw e;
+  }
+});

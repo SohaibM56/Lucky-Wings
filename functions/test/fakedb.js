@@ -38,6 +38,10 @@ function makeDb(seed = {}) {
       ...make([], null, 0),
       doc: (id) => ({
         get: async () => ({ exists: id in store[name], id, data: () => store[name][id] }),
+        create: async (d) => {
+          if (id in store[name]) { const e = new Error("exists"); e.code = 6; throw e; }
+          store[name][id] = d;
+        },
         set: async (d, o) => { store[name][id] = o && o.merge ? { ...(store[name][id] || {}), ...d } : d; },
         update: async (u) => Object.assign(store[name][id], u),
         delete: async () => { delete store[name][id]; },
