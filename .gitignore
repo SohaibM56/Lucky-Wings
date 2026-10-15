@@ -67,3 +67,6 @@ firebase-debug.log
 *-adminsdk-*.json
 
 functions/.env.local
+
+# Built admin panel copied in for hosting deploys
+admin_dist/

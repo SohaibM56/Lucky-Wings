@@ -7,8 +7,8 @@
     "rules": "firestore.rules"
   },
   "hosting": {
-    "target": "admin",
-    "public": "../lucky-wings-admin/dist",
+    "site": "lucky-wings-admin",
+    "public": "admin_dist",
     "ignore": [
       "firebase.json",
       "**/.*",
