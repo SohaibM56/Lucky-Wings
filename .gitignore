@@ -70,3 +70,4 @@ functions/.env.local
 
 # Built admin panel copied in for hosting deploys
 admin_dist/
+.firebase/
