@@ -64,18 +64,18 @@ class AdConfig {
 
   // ─── Your Production Ad Unit IDs ─────────────────────────────────────────
   // iOS — paste from admob.google.com → Apps → Ad units
-  static const _iosBannerProd       = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
-  static const _iosInterstitialProd = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
-  static const _iosRewardedProd     = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
-  static const _iosNativeProd       = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
-  static const _iosAppOpenProd      = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
+  static const _iosBannerProd       = 'ca-app-pub-1191678511602281/7974914623';
+  static const _iosInterstitialProd = 'ca-app-pub-1191678511602281/2739819685';
+  static const _iosRewardedProd     = 'ca-app-pub-1191678511602281/1426738014';
+  static const _iosNativeProd       = 'ca-app-pub-1191678511602281/3057629868';
+  static const _iosAppOpenProd      = 'ca-app-pub-1191678511602281/9431466528';
 
   // Android — paste from admob.google.com → Apps → Ad units
-  static const _androidBannerProd       = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
-  static const _androidInterstitialProd = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
-  static const _androidRewardedProd     = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
-  static const _androidNativeProd       = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
-  static const _androidAppOpenProd      = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
+  static const _androidBannerProd       = 'ca-app-pub-1191678511602281/4785644508';
+  static const _androidInterstitialProd = 'ca-app-pub-1191678511602281/1346846961';
+  static const _androidRewardedProd     = 'ca-app-pub-1191678511602281/8047986688';
+  static const _androidNativeProd       = 'ca-app-pub-1191678511602281/8717150650';
+  static const _androidAppOpenProd      = 'ca-app-pub-1191678511602281/9328533907';
 
   // ─── Getters (auto-select test vs prod by platform) ───────────────────────
   static String get bannerId {
